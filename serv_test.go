@@ -105,12 +105,13 @@ func (s *ServicePanic) BeforeServe() error {
 func TestServPanic(t *testing.T) {
 	server := serv.New()
 	go func() {
+		// 在启动中产生 panic 会导致服务终止退出 所以不会指定这段逻辑
+		// 如果出现 panic 则说明服务没有终止
 		time.Sleep(1 * time.Second)
-		server.ForceStop()
+		panic(1)
 	}()
 
 	service := &ServicePanic{t: t}
 	server.Serve(service)
 	assert.True(t, service.value)
-	<-time.After(10 * time.Second)
 }
