@@ -1,11 +1,18 @@
 package serv
 
+import (
+	"os"
+	"os/signal"
+	"syscall"
+)
+
 type Serv struct {
 	beforeServes []func() error
 	afterServes  []func() error
 	beforeStops  []func() error
 	stopChannel  chan struct{}
 	serveError   error
+	sigChannel   chan os.Signal
 	log          Logger
 }
 
@@ -15,6 +22,7 @@ func New(bfs ...BuildFunc) *Serv {
 		afterServes:  make([]func() error, 0),
 		beforeStops:  make([]func() error, 0),
 		stopChannel:  make(chan struct{}),
+		sigChannel:   make(chan os.Signal, 1),
 		log:          &log{},
 	}
 	for _, bf := range bfs {
@@ -39,10 +47,20 @@ func (i *Serv) Serve(servers ...Server) {
 		}
 	}()
 	defer i.beforeStop(servers...)
+	// 启动前监听是否有退出信号
+	signal.Notify(i.sigChannel, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	// 启动相关服务
 	i.beforeServe(servers...)
 	i.serve(servers...)
 	i.afterServe(servers...)
-	<-i.stopChannel
+	select {
+	case <-i.stopChannel:
+		i.log.Errorf("force stop")
+		return
+	case sig := <-i.sigChannel:
+		i.log.Errorf("receive signal: %v", sig)
+		return
+	}
 }
 
 func (i *Serv) beforeServe(servers ...Server) {
@@ -125,6 +143,8 @@ func (i *Serv) RegisterBeforeStop(f func() error) {
 	i.beforeStops = append(i.beforeStops, f)
 }
 
+// ForceStop 强制停止
+// 一般不直接调用 而是监听程序是否被强制杀掉
 func (i *Serv) ForceStop() {
 	i.stopChannel <- struct{}{}
 }

@@ -1,11 +1,39 @@
 package serv_test
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"os"
+	"runtime"
 	"serv"
+	"syscall"
 	"testing"
 	"time"
 )
+
+type ServiceLog struct {
+	serv.Service
+}
+
+func (s *ServiceLog) BeforeServe() error {
+	fmt.Println("BeforeServe")
+	return nil
+}
+
+func (s *ServiceLog) AfterServe() error {
+	fmt.Println("AfterServe")
+	return nil
+}
+
+func (s *ServiceLog) Serve() error {
+	fmt.Println("Serve")
+	return nil
+}
+
+func (s *ServiceLog) BeforeStop() error {
+	fmt.Println("BeforeStop")
+	return nil
+}
 
 type ServiceSuccess struct {
 	t           *testing.T
@@ -114,4 +142,27 @@ func TestServPanic(t *testing.T) {
 	service := &ServicePanic{t: t}
 	server.Serve(service)
 	assert.True(t, service.value)
+}
+
+func TestServSignal(t *testing.T) {
+	server := serv.New()
+	go func() {
+		// 等待一段时间后发送 SIGTERM 信号
+		time.Sleep(1 * time.Second)
+		p, err := os.FindProcess(os.Getpid())
+		assert.Nil(t, err)
+		switch goos := runtime.GOOS; goos {
+		case "windows":
+			err = p.Signal(syscall.SIGKILL)
+			assert.Nil(t, err)
+		case "linux":
+			err = p.Signal(syscall.SIGTERM)
+			assert.Nil(t, err)
+		default:
+			assert.Fail(t, "unsupported os")
+		}
+	}()
+
+	go server.Serve(&ServiceLog{})
+	time.Sleep(20 * time.Second)
 }
