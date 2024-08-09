@@ -166,3 +166,8 @@ func TestServSignal(t *testing.T) {
 	go server.Serve(&ServiceLog{})
 	time.Sleep(20 * time.Second)
 }
+
+// 测试单例模式是否正常运行
+func TestSingleton(t *testing.T) {
+	serv.Serve(&ServiceLog{})
+}

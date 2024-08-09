@@ -1,6 +1,6 @@
 package serv
 
-var serv = &Serv{}
+var serv = New()
 
 func Serve(servers ...Server) {
 	serv.Serve(servers...)
