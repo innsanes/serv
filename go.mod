@@ -1,4 +1,4 @@
-module serv
+module github.com/innsanes/serv
 
 go 1.19
 
