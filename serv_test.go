@@ -2,10 +2,10 @@ package serv_test
 
 import (
 	"fmt"
+	"github.com/innsanes/serv"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"runtime"
-	"serv"
 	"syscall"
 	"testing"
 	"time"
